@@ -11,4 +11,5 @@ vaderSentiment>=3.3.2
 scikit-learn>=1.2
 pytest>=7.0
 pynance>=0.1.3
-TA-Lib>=0.4.27; platform_system!="Windows"
+# TA-Lib on Windows requires additional wheels/binaries; prefer platform-specific install.
+TA-Lib>=0.4.27 ; sys_platform!='win32'
