@@ -37,20 +37,43 @@ def load_prices():
         print('Downloading SPY sample data via yfinance...')
         df = yf.download('SPY', period='2y', auto_adjust=False)
         df = df.reset_index().rename(columns={'Adj Close':'Adj_Close'})
+    # debug: print column structure when running interactively
+    try:
+        print('DEBUG: columns ->', list(df.columns))
+    except Exception:
+        pass
     return df
 
 def prepare(df):
+    # normalize columns: handle yfinance MultiIndex columns (ticker, field)
+    new_cols = []
+    for c in df.columns:
+        if isinstance(c, tuple):
+            if len(c) > 1:
+                new_cols.append(c[1])
+            else:
+                new_cols.append(c[0])
+        else:
+            new_cols.append(c)
+    df.columns = new_cols
+
     # ensure Date
     if 'Date' in df.columns:
         df['Date'] = pd.to_datetime(df['Date'])
     else:
-        df = df.reset_index().rename(columns={'index':'Date'})
+        df = df.reset_index().rename(columns={'index': 'Date'})
         df['Date'] = pd.to_datetime(df['Date'])
     df = df.sort_values('Date').reset_index(drop=True)
-    # coerce numeric
-    for c in ['Open','High','Low','Close','Adj_Close','Volume']:
+
+    # coerce numeric robustly: handle Series or DataFrame columns
+    for c in ['Open', 'High', 'Low', 'Close', 'Adj_Close', 'Volume']:
         if c in df.columns:
-            df[c] = pd.to_numeric(df[c], errors='coerce')
+            coldata = df[c]
+            if isinstance(coldata, pd.DataFrame):
+                # take first subcolumn if multi
+                coldata = coldata.iloc[:, 0]
+            df[c] = pd.to_numeric(coldata, errors='coerce')
+
     df = df.ffill().dropna().reset_index(drop=True)
     return df
 
