@@ -47,12 +47,19 @@ def load_prices():
 def prepare(df):
     # normalize columns: handle yfinance MultiIndex columns (ticker, field)
     new_cols = []
+    expected_fields = {'Date','Open','High','Low','Close','Adj Close','Adj_Close','Volume'}
     for c in df.columns:
         if isinstance(c, tuple):
-            if len(c) > 1:
-                new_cols.append(c[1])
-            else:
-                new_cols.append(c[0])
+            # prefer the element that matches expected field names
+            chosen = None
+            for part in c:
+                if isinstance(part, str) and part in expected_fields:
+                    chosen = part
+                    break
+            if chosen is None:
+                # fallback to first non-empty part or first element
+                chosen = next((p for p in c if isinstance(p, str) and p), c[0])
+            new_cols.append(chosen)
         else:
             new_cols.append(c)
     df.columns = new_cols
